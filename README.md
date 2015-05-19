@@ -17,6 +17,11 @@ This will enable monitoring for all dependencies that will be required after **r
 files is modified, it is removed from the require cache and reloaded. Only dependencies of the module that required
 **reqmon** would be monitored.
 
+Module won't reload more often than once in a period for each file. The default is 2 s. Period can be changed
+with **reqmon.timeout(newValue)** call:
+
+	require('reqmon').timeout(500).watch();
+
 Example
 =======
 

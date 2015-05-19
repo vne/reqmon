@@ -1,0 +1,27 @@
+{
+  "name": "reqmon",
+  "version": "0.0.1",
+  "description": "Monitor NodeJS application and it's dependencies for changes, autoreload when needed",
+  "main": "reqmon.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vne/reqmon.git"
+  },
+  "keywords": [
+    "nodejs",
+    "monitor",
+    "changes",
+    "dependency",
+    "autoreload",
+    "module"
+  ],
+  "author": "Vladimir Neverov <sanguini@gmail.com> (https://github.com/vne)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vne/reqmon/issues"
+  },
+  "homepage": "https://github.com/vne/reqmon"
+}

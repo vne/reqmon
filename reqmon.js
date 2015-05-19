@@ -182,7 +182,7 @@ function getCallingModule() {
   // Remove superfluous function calls on stack
   stack.shift() // getCaller --> getStack
   stack.shift() // omfg --> getCaller
-  return stack.filter(function(x) { return !!x.receiver.filename })[0].receiver;
+  return stack.filter(function(x) { return x && x.receiver && x.receiver.filename; })[0].receiver;
 }
 
 function getStack() {

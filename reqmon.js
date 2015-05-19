@@ -56,7 +56,7 @@ evbus.watch = function(options) {
 		var mfpath = fpath;
 		if (module.parent) {
 			var caller = getCallingModule();
-			if (!paths[caller.filename]) {
+			if (caller && !paths[caller.filename]) {
 				return this.reqmon_require(fpath);
 			}
 			// console.log('module parent', module.parent.filename, '/for/', fpath, Object.keys(paths));
@@ -182,7 +182,8 @@ function getCallingModule() {
   // Remove superfluous function calls on stack
   stack.shift() // getCaller --> getStack
   stack.shift() // omfg --> getCaller
-  return stack.filter(function(x) { return x && x.receiver && x.receiver.filename; })[0].receiver;
+  var fstack = stack.filter(function(x) { return x && x.receiver && x.receiver.filename; });
+  return fstack && fstack.length ? fstack[0].receiver : null;
 }
 
 function getStack() {

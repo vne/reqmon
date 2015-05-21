@@ -103,7 +103,7 @@ Internals
 =========
 
 Internally reqmon works by hacking into Module's prototype. It adds several methods there (reqmon\_require, reqmon\_ignored, reqmon\_load,
-reqmon\_monitor, reqmon\_change, reqmon\_fileHasChanged, reqmon\_defaults). **reqmon_require** is
+reqmon\_monitor, reqmon\_change, reqmon\_file_has_changed, reqmon\_defaults). **reqmon_require** is
 the original **Module.prototype.require** method. Reqmon replaces **Module.prototype.require** with it's own method. All reqmon's
 own methods are prefixed with **reqmon\_**, so they shouldn't cause clashes. Anyway, be warned!
 

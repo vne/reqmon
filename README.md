@@ -17,7 +17,7 @@ This will enable monitoring for all dependencies that will be required after **r
 If one of the monitored files is modified, it is removed from the require cache and reloaded. Only dependencies of the module that required
 **reqmon** would be monitored.
 
-Module will reload only if file's mtime is more than the previous mtime.
+Module will reload only if file's mtime is greater than the previous mtime.
 
 Ignore paths
 ------------

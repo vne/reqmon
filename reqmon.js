@@ -20,6 +20,7 @@
 var DEFAULT_TIMEOUT = 2000;     // milliseconds, timeout
 var DEFAULT_DEBUG   = false;
 var DEFAULT_CONSOLE = false;
+var DEFAULT_RELOAD_CHILDREN = false;
 
 var Module = require('module');
 var EventEmitter = require('events').EventEmitter;
@@ -30,9 +31,10 @@ var paths = {};                        // full paths to loaded modules are store
 var ignore = [ /\/node_modules\// ];   // paths to ignore (array of strings, regexes, functions and arrays). Ignore all modules in all node_modules directories by default
 var timeouts = {};                     // timeouts to block reloading for TIMEOUT ms after change, file names are keys
 
-var TIMEOUT = DEFAULT_TIMEOUT;
-var DEBUG   = DEFAULT_DEBUG;
-var CONSOLE = DEFAULT_CONSOLE;
+var TIMEOUT         = DEFAULT_TIMEOUT;
+var DEBUG           = DEFAULT_DEBUG;
+var CONSOLE         = DEFAULT_CONSOLE;
+var RELOAD_CHILDREN = DEFAULT_RELOAD_CHILDREN;
 
 var reqmon = new EventEmitter();
 
@@ -71,6 +73,19 @@ reqmon.console = function(c) {
 };
 
 /**
+ * Set reload children flag. If it is true, then, reloading of the module
+ * will cause reloading of all it's children that are also tracked.
+ * False by default.
+ *
+ * @param  {Boolean} c reload children flag
+ * @return {Object}   reqmon instance
+ */
+reqmon.reload_children = function(c) {
+	RELOAD_CHILDREN = c;
+	return reqmon;
+};
+
+/**
  * Add ignore patterns to the list of ignore patterns.
  * Special case is when null is passed as first argument, which means - reset ignore patterns.
  *
@@ -104,7 +119,7 @@ reqmon.list = function() {
  */
 reqmon.unwatch = function() {
 	// stop watchers
-	Object.keys(paths).map(function(x) { x.close() });
+	Object.keys(paths).map(function(x) { paths[x].close() });
 
 	// restore original require
 	Module.prototype.require = Module.prototype.reqmon_require;
@@ -136,10 +151,11 @@ reqmon.watch = function(options) {
 	// process options
 	if (typeof options === "undefined") { options = {}; }
 
-	if (typeof options.ignore  !== "undefined") { reqmon.ignore(options.ignore); }
-	if (typeof options.debug   !== "undefined") { reqmon.debug(options.debug); }
-	if (typeof options.console !== "undefined") { reqmon.console(options.console); }
-	if (typeof options.timeout !== "undefined") { reqmon.timeout(options.timeout); }
+	if (typeof options.ignore          !== "undefined") { reqmon.ignore(options.ignore); }
+	if (typeof options.debug           !== "undefined") { reqmon.debug(options.debug); }
+	if (typeof options.console         !== "undefined") { reqmon.console(options.console); }
+	if (typeof options.timeout         !== "undefined") { reqmon.timeout(options.timeout); }
+	if (typeof options.reload_children !== "undefined") { reqmon.reload_children(options.reload_children); }
 
 	// save original require method
 	Module.prototype.reqmon_require = Module.prototype.require;
@@ -190,7 +206,6 @@ reqmon.watch = function(options) {
 		// module from cache
 		// reqmon can not be reloaded by reqmon :)
 		if (rpath === module.filename) {
-			this.reqmon_defaults();
 			return require.cache[rpath].exports;
 		}
 
@@ -202,7 +217,7 @@ reqmon.watch = function(options) {
 		if (CONSOLE) { console.log('reqmon:', this.filename, 'requires "' + fpath + '" ->', rpath); }
 
 		// if the module is already loaded, return the cached version
-		if (require.cache[rpath]) { return require.cache[rpath].exports; }
+		if (!RELOAD_CHILDREN && require.cache[rpath]) { return require.cache[rpath].exports; }
 
 		// setup monitoring
 		// This should be done prior to requiring the module, as module may has other dependencies,
@@ -334,6 +349,7 @@ reqmon.watch = function(options) {
 		TIMEOUT = DEFAULT_TIMEOUT;
 		DEBUG = DEFAULT_DEBUG;
 		CONSOLE = DEFAULT_CONSOLE;
+		RELOAD_CHILDREN = DEFAULT_RELOAD_CHILDREN;
 	}
 
 	if (module.parent) {

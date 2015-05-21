@@ -115,12 +115,13 @@ API
 ===
 
   * reqmon.watch(options)          - main method that actually replaces Module.prototype.require and does other setup.
-  								     **options** object allows to setup the same debug console, timeout and ignore features, as separate methods described below.
+  								     **options** object allows to setup the same debug console, timeout, reload_children and ignore features, as separate methods described below.
   * reqmon.unwatch()               - restore Module's prototype, put original **require** to it's place and delete all **reqmon**'s methods
   * reqmon.debug(value)            - if value === true, reqmon will output debug information to console
   * reqmon.console(value)          - if value === true, reqmon will output paths to modules that are being monitored. That's much more concise than debug.
   * reqmon.ignore(arg1, arg2, ...) - add ignore patters. If first argument is null, then the list of ignore patters is reset.
   * reqmon.timeout(value)          - set new timeout value (default is 2000 ms)
+  * reqmon.reload_children(value)  - set whether children of the reloaded module should be reloaded also
   * reqmon.list()                  - return a list of paths that are currently monitored
 
 All methods, except **list**, return the same instance of reqmon, so the calls can be chained:

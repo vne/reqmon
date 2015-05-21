@@ -1,4 +1,4 @@
-var reqmon = require('../reqmon').debug(false).watch();
+var reqmon = require('../reqmon').watch();
 var grandchild = require('./grandchild');
 
 console.log('child loaded');

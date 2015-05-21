@@ -17,9 +17,7 @@ This will enable monitoring for all dependencies that will be required after **r
 If one of the monitored files is modified, it is removed from the require cache and reloaded. Only dependencies of the module that required
 **reqmon** would be monitored.
 
-Module won't reload more often than once in a period for each file. The default is 2 s; use **reqmon.timeout(newValue)** to change it:
-
-	require('reqmon').timeout(500).watch();
+Module will reload only if file's mtime is more than the previous mtime.
 
 Ignore paths
 ------------
@@ -30,7 +28,7 @@ monitor third-party libraries. **reqmon** provides **ignore** method, that allow
 	require('reqmon').ignore("/strict/path.js", /regex/, function(path) { return !!path; })
 
 The example above will not monitor modules
-  a) that resides at **/strict/path.js**,
+  a) that reside at **/strict/path.js**,
   b) that match the regular expression */regex/*,
   c) for which function returns true
 
@@ -105,7 +103,7 @@ Internals
 =========
 
 Internally reqmon works by hacking into Module's prototype. It adds several methods there (reqmon\_require, reqmon\_ignored, reqmon\_load,
-reqmon\_monitor, reqmon\_change, reqmon\_fileHasChanged, reqmon\_timeoutFor, reqmon\_defaults). **reqmon_require** is
+reqmon\_monitor, reqmon\_change, reqmon\_fileHasChanged, reqmon\_defaults). **reqmon_require** is
 the original **Module.prototype.require** method. Reqmon replaces **Module.prototype.require** with it's own method. All reqmon's
 own methods are prefixed with **reqmon\_**, so they shouldn't cause clashes. Anyway, be warned!
 
@@ -115,22 +113,21 @@ API
 ===
 
   * reqmon.watch(options)          - main method that actually replaces Module.prototype.require and does other setup.
-  								     **options** object allows to setup the same debug console, timeout, reload_children and ignore features, as separate methods described below.
+  								     **options** object allows to setup the same debug console, reload_children and ignore features, as separate methods described below.
   * reqmon.unwatch()               - restore Module's prototype, put original **require** to it's place and delete all **reqmon**'s methods
   * reqmon.debug(value)            - if value === true, reqmon will output debug information to console
   * reqmon.console(value)          - if value === true, reqmon will output paths to modules that are being monitored. That's much more concise than debug.
   * reqmon.ignore(arg1, arg2, ...) - add ignore patters. If first argument is null, then the list of ignore patters is reset.
-  * reqmon.timeout(value)          - set new timeout value (default is 2000 ms)
   * reqmon.reload_children(value)  - set whether children of the reloaded module should be reloaded also
   * reqmon.list()                  - return a list of paths that are currently monitored
 
 All methods, except **list**, return the same instance of reqmon, so the calls can be chained:
 
-	reqmon.debug(true).timeout(1000).watch();
+	reqmon.debug(true).reload_children(true).watch();
 
 You can also write
 
-	reqmon.watch({ debug: true, timeout: 1000 })
+	reqmon.watch({ debug: true, reload_children: true });
 
 if you prefer.
 

@@ -1,6 +1,6 @@
 {
   "name": "reqmon",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Monitor NodeJS application and it's dependencies for changes, autoreload when needed",
   "main": "reqmon.js",
   "scripts": {

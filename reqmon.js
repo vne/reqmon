@@ -17,7 +17,6 @@
 	  - loaded - module was reloaded, file path and module instance are the two arguments
  */
 
-var DEFAULT_TIMEOUT = 2000;     // milliseconds, timeout
 var DEFAULT_DEBUG   = false;
 var DEFAULT_CONSOLE = false;
 var DEFAULT_RELOAD_CHILDREN = false;
@@ -28,26 +27,14 @@ var fs = require('fs');
 var path = require('path');
 
 var paths = {};                        // full paths to loaded modules are stored here
+var stats = {};                        // stat info for files
 var ignore = [ /\/node_modules\// ];   // paths to ignore (array of strings, regexes, functions and arrays). Ignore all modules in all node_modules directories by default
-var timeouts = {};                     // timeouts to block reloading for TIMEOUT ms after change, file names are keys
 
-var TIMEOUT         = DEFAULT_TIMEOUT;
 var DEBUG           = DEFAULT_DEBUG;
 var CONSOLE         = DEFAULT_CONSOLE;
 var RELOAD_CHILDREN = DEFAULT_RELOAD_CHILDREN;
 
 var reqmon = new EventEmitter();
-
-/**
- * Set the time period during which change events would be ignored for the given file
- *
- * @param  {Number} tm timeout in milliseconds
- * @return {Object}    reqmon instance
- */
-reqmon.timeout = function(tm) {
-	TIMEOUT = tm;
-	return reqmon;
-};
 
 /**
  * Set debug flag to the value of the first argument
@@ -130,7 +117,6 @@ reqmon.unwatch = function() {
 	delete Module.prototype.reqmon_monitor;
 	delete Module.prototype.reqmon_change;
 	delete Module.prototype.reqmon_file_has_changed;
-	delete Module.prototype.reqmon_timeoutFor;
 	delete Module.prototype.reqmon_defaults;
 	delete Module.prototype.reqmon_ignored;
 
@@ -154,7 +140,6 @@ reqmon.watch = function(options) {
 	if (typeof options.ignore          !== "undefined") { reqmon.ignore(options.ignore); }
 	if (typeof options.debug           !== "undefined") { reqmon.debug(options.debug); }
 	if (typeof options.console         !== "undefined") { reqmon.console(options.console); }
-	if (typeof options.timeout         !== "undefined") { reqmon.timeout(options.timeout); }
 	if (typeof options.reload_children !== "undefined") { reqmon.reload_children(options.reload_children); }
 
 	// save original require method
@@ -293,6 +278,10 @@ reqmon.watch = function(options) {
 		var self = this;
 		if (paths[rpath]) { return; }
 		if (DEBUG) { console.log('reqmon:monitor', rpath); }
+		fs.stat(rpath, function(err, stat) {
+			if (err) { return console.error('reqmon: error calling stat on', rpath); }
+			stats[rpath] = stat;
+		});
 		paths[rpath] = fs.watch(rpath, { persistent: false, recursive: false })
 			.on('change', function(ev) { return self.reqmon_change(ev, rpath); })
 			.on('error', function(err) { console.error('reqmon:error', err); });
@@ -310,11 +299,13 @@ reqmon.watch = function(options) {
 	 */
 	Module.prototype.reqmon_change = function(ev, filename) {
 		var self = this;
-		if (!this.reqmon_file_has_changed(filename)) { return; }
-		if (DEBUG) { console.log('reqmon:change', filename); }
-		if (CONSOLE) { console.log('reqmon: reloading', filename); }
-		reqmon.emit('change', filename);
-		this.reqmon_load(filename);
+		this.reqmon_file_has_changed(filename, function(changed) {
+			if (!changed) { return; }
+			if (DEBUG) { console.log('reqmon:change', filename); }
+			if (CONSOLE) { console.log('reqmon: reloading', filename); }
+			reqmon.emit('change', filename);
+			self.reqmon_load(filename);
+		});
 	};
 
 	/**
@@ -322,31 +313,25 @@ reqmon.watch = function(options) {
 	 *
 	 * Returns true if file has really changed and should be reloaded
 	 *
-	 * TODO: add file mtime comparison
-	 *
 	 * @param  {String} filename
 	 * @return {Boolean}          true if file has changed, false otherwise
 	 */
-	Module.prototype.reqmon_file_has_changed = function(filename) {
-		if (timeouts[filename]) { return false; }
-		this.reqmon_timeoutFor(filename);
-		return true;
-	};
-
-	/**
-	 * setup timeout for file name, clear the timeout after the timeout :)
-	 *
-	 * @param  {String} filename
-	 */
-	Module.prototype.reqmon_timeoutFor = function(filename) {
-		timeouts[filename] = setTimeout(function() { delete timeouts[filename]; }, TIMEOUT);
+	Module.prototype.reqmon_file_has_changed = function(filename, callback) {
+		fs.stat(filename, function(err, stat) {
+			if (err) { return console.error('reqmon: error calling stat on', filename); }
+			// if mtime changed, return true
+			if (!stats[filename] || stat.mtime > stats[filename].mtime) {
+				stats[filename] = stat;
+				return callback(true);
+			}
+			return callback(false);
+		});
 	};
 
 	/**
 	 * reset options to defaults
 	 */
 	Module.prototype.reqmon_defaults = function() {
-		TIMEOUT = DEFAULT_TIMEOUT;
 		DEBUG = DEFAULT_DEBUG;
 		CONSOLE = DEFAULT_CONSOLE;
 		RELOAD_CHILDREN = DEFAULT_RELOAD_CHILDREN;
@@ -354,7 +339,6 @@ reqmon.watch = function(options) {
 
 	if (module.parent) {
 		module.parent.reqmon_monitor(module.parent.filename);
-		// module.parent.reqmon_timeoutFor(module.parent.filename);
 	}
 
 	return reqmon;
